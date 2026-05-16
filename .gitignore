@@ -1,0 +1,48 @@
+# Miscellaneous
+*.class
+*.log
+*.pyc
+*.swp
+.DS_Store
+.atom/
+.build/
+.buildlog/
+.history
+.svn/
+.swiftpm/
+migrate_working_dir/
+
+# IntelliJ
+*.iml
+*.ipr
+*.iws
+.idea/
+
+# VS Code
+.vscode/
+
+# Flutter / Dart / Pub
+**/doc/api/
+**/ios/Flutter/.last_build_id
+.dart_tool/
+.flutter-plugins
+.flutter-plugins-dependencies
+.pub-cache/
+.pub/
+/build/
+
+# Symbols / obfuscation
+app.*.symbols
+app.*.map.json
+
+# Local-only scripts that may carry the Supabase PAT or service_role.
+# Anything matching these patterns is presumed local-only.
+apply_*.ps1
+audit_*.ps1
+deploy_*.ps1
+prepare_*.ps1
+setup_*.ps1
+fix_*.ps1
+*.local.ps1
+.env
+.env.*
