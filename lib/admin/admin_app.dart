@@ -7,6 +7,7 @@ import 'screens/admin_audit_log_screen.dart';
 import 'screens/admin_chat_review_screen.dart';
 import 'screens/admin_chats_queue_screen.dart';
 import 'screens/admin_login_screen.dart';
+import 'screens/admin_pending_images_screen.dart';
 import 'screens/admin_post_review_screen.dart';
 import 'screens/admin_reports_queue_screen.dart';
 import 'screens/admin_shell.dart';
@@ -67,6 +68,10 @@ final _adminRouterProvider = Provider<GoRouter>((ref) {
           GoRoute(
             path: '/chats',
             builder: (context, state) => const AdminChatsQueueScreen(),
+          ),
+          GoRoute(
+            path: '/images',
+            builder: (context, state) => const AdminPendingImagesScreen(),
           ),
           GoRoute(
             path: '/audit',

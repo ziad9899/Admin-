@@ -122,6 +122,54 @@ class AdminRepository {
     return Map<String, dynamic>.from(res as Map);
   }
 
+  // ---- Pending image moderation -----------------------------------------
+
+  /// FIFO queue of post_images rows awaiting review (status='pending_review').
+  /// Each row carries enough context (body, tag, author) so the moderator
+  /// can decide without an extra fetch per row.
+  Future<List<Map<String, dynamic>>> listPendingImages({
+    int limit = 50,
+    int offset = 0,
+  }) async {
+    final rows = await _client.rpc(
+      'admin_list_pending_images',
+      params: {'p_limit': limit, 'p_offset': offset},
+    );
+    return (rows as List).cast<Map<String, dynamic>>();
+  }
+
+  /// Flips the image to 'active' so posts_feed starts surfacing it.
+  Future<void> approveImage({required int postId, String? note}) async {
+    await _client.rpc('admin_approve_image', params: {
+      'p_post_id': postId,
+      'p_note': note,
+    });
+  }
+
+  /// Flips the image to 'removed' AND soft-removes the parent post.
+  Future<void> rejectImage({
+    required int postId,
+    required String reason,
+  }) async {
+    await _client.rpc('admin_reject_image', params: {
+      'p_post_id': postId,
+      'p_reason': reason,
+    });
+  }
+
+  /// Signs a short-lived URL for any path in the post-images bucket.
+  /// `createSignedUrl` itself doesn't gate on RLS — it just signs — so
+  /// the moderator can preview any pending image even though they're
+  /// not the owner of the storage path.
+  Future<String> postImageSignedUrl(
+    String storagePath, {
+    int ttlSeconds = 600,
+  }) {
+    return _client.storage
+        .from('post-images')
+        .createSignedUrl(storagePath, ttlSeconds);
+  }
+
   // ---- Audit log + admin roster -----------------------------------------
 
   Future<List<Map<String, dynamic>>> listAuditLog({

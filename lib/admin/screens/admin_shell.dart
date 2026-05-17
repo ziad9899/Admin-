@@ -33,6 +33,8 @@ class AdminShell extends ConsumerWidget {
                 case 1:
                   context.go('/chats');
                 case 2:
+                  context.go('/images');
+                case 3:
                   context.go('/audit');
               }
             },
@@ -83,6 +85,11 @@ class AdminShell extends ConsumerWidget {
                 label: Text('Chats'),
               ),
               NavigationRailDestination(
+                icon: Icon(Icons.image_search_outlined),
+                selectedIcon: Icon(Icons.image_search),
+                label: Text('Pending images'),
+              ),
+              NavigationRailDestination(
                 icon: Icon(Icons.history_outlined),
                 selectedIcon: Icon(Icons.history),
                 label: Text('Audit log'),
@@ -97,11 +104,13 @@ class AdminShell extends ConsumerWidget {
   }
 
   // When the operator is deep in a detail page (e.g. /post/123 or
-  // /chat/45), the rail keeps the most logical queue highlighted.
-  // Detail routes that have no obvious queue default to Reports.
+  // /chat/45 or /images), the rail keeps the most logical queue
+  // highlighted. Detail routes that have no obvious queue default
+  // to Reports.
   int _indexFor(String loc) {
     if (loc.startsWith('/chats') || loc.startsWith('/chat/')) return 1;
-    if (loc.startsWith('/audit')) return 2;
+    if (loc.startsWith('/images')) return 2;
+    if (loc.startsWith('/audit')) return 3;
     return 0;
   }
 }
