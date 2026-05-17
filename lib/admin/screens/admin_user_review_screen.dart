@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 
 import '../data/admin_repository.dart';
+import '../widgets/admin_back_button.dart';
 
 final _userProvider =
     FutureProvider.autoDispose.family<Map<String, dynamic>, int>((ref, id) {
@@ -20,10 +21,7 @@ class AdminUserReviewScreen extends ConsumerWidget {
     return Scaffold(
       appBar: AppBar(
         title: Text('User #$numericId'),
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
-          onPressed: () => context.canPop() ? context.pop() : context.go('/reports'),
-        ),
+        leading: const AdminBackButton(),
         actions: [
           IconButton(
             onPressed: () => ref.invalidate(_userProvider(numericId)),

@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 
 import '../data/admin_repository.dart';
+import '../widgets/admin_back_button.dart';
 
 /// Three states for the chat review screen:
 /// 1. Initial — show a reason prompt + "Open chat" button. The server
@@ -55,11 +56,7 @@ class _AdminChatReviewScreenState extends ConsumerState<AdminChatReviewScreen> {
     return Scaffold(
       appBar: AppBar(
         title: Text('Chat #${widget.chatId}'),
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
-          onPressed: () =>
-              context.canPop() ? context.pop() : context.go('/chats'),
-        ),
+        leading: const AdminBackButton(fallbackPath: '/chats'),
       ),
       body: _data != null
           ? _ChatBody(data: _data!, chatId: widget.chatId)

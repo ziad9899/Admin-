@@ -4,10 +4,10 @@ import 'package:go_router/go_router.dart';
 
 import '../auth/admin_auth.dart';
 
-/// Top-level layout for authenticated admin screens: a left navigation
-/// rail + the routed child on the right. The rail is shown only for the
-/// three "main" sections (reports / chats / audit); detail screens hide
-/// it via fullscreen layout (they keep AppBar back button instead).
+/// Top-level layout: a persistent left NavigationRail + the routed
+/// child on the right. The rail stays visible on every authenticated
+/// route — including detail pages — so the operator can switch tabs
+/// without back-buttoning out of a deep view first.
 class AdminShell extends ConsumerWidget {
   const AdminShell({super.key, required this.location, required this.child});
 
@@ -16,17 +16,9 @@ class AdminShell extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final isQueue =
-        location == '/reports' || location == '/chats' || location == '/audit';
     final session = ref.watch(adminSessionProvider);
     final email = session?.user.email ?? '';
-
     final scheme = Theme.of(context).colorScheme;
-
-    if (!isQueue) {
-      // Detail pages: no rail, just the routed child (it has its own AppBar).
-      return Scaffold(body: child);
-    }
 
     return Scaffold(
       body: Row(
@@ -104,8 +96,11 @@ class AdminShell extends ConsumerWidget {
     );
   }
 
+  // When the operator is deep in a detail page (e.g. /post/123 or
+  // /chat/45), the rail keeps the most logical queue highlighted.
+  // Detail routes that have no obvious queue default to Reports.
   int _indexFor(String loc) {
-    if (loc.startsWith('/chats')) return 1;
+    if (loc.startsWith('/chats') || loc.startsWith('/chat/')) return 1;
     if (loc.startsWith('/audit')) return 2;
     return 0;
   }

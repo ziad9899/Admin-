@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 
 import '../data/admin_repository.dart';
+import '../widgets/admin_back_button.dart';
 
 final _postProvider =
     FutureProvider.autoDispose.family<Map<String, dynamic>, int>((ref, id) {
@@ -22,7 +23,7 @@ class AdminPostReviewScreen extends ConsumerWidget {
     return Scaffold(
       appBar: AppBar(
         title: Text('Post #$postId'),
-        leading: const _BackArrow(),
+        leading: const AdminBackButton(),
         actions: [
           IconButton(
             tooltip: 'Refresh',
@@ -161,11 +162,18 @@ class _PostCard extends ConsumerWidget {
       await ref
           .read(adminRepositoryProvider)
           .removePost(postId: postId, reason: reason);
-      ref.invalidate(_postProvider(postId));
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Post removed')),
         );
+        // Pop back to where the admin came from (most likely the
+        // reports queue). The post is now inert; lingering on this
+        // page would just confuse the operator.
+        if (context.canPop()) {
+          context.pop();
+        } else {
+          context.go('/reports');
+        }
       }
     } catch (e) {
       if (context.mounted) {
@@ -395,23 +403,6 @@ Future<String?> _promptReason(BuildContext context, String title) async {
       ],
     ),
   );
-}
-
-class _BackArrow extends StatelessWidget {
-  const _BackArrow();
-  @override
-  Widget build(BuildContext context) {
-    return IconButton(
-      icon: const Icon(Icons.arrow_back),
-      onPressed: () {
-        if (context.canPop()) {
-          context.pop();
-        } else {
-          context.go('/reports');
-        }
-      },
-    );
-  }
 }
 
 class _ErrText extends StatelessWidget {

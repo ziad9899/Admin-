@@ -7,7 +7,7 @@ import '../data/admin_repository.dart';
 
 final _statusFilterProvider = StateProvider<String?>((_) => 'open');
 
-final _reportsProvider =
+final reportsQueueProvider =
     FutureProvider.autoDispose<List<Map<String, dynamic>>>((ref) async {
   final status = ref.watch(_statusFilterProvider);
   return ref.read(adminRepositoryProvider).listReports(
@@ -21,7 +21,7 @@ class AdminReportsQueueScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final reports = ref.watch(_reportsProvider);
+    final reports = ref.watch(reportsQueueProvider);
     final status = ref.watch(_statusFilterProvider);
 
     return Scaffold(
@@ -43,7 +43,7 @@ class AdminReportsQueueScreen extends ConsumerWidget {
           ),
           IconButton(
             tooltip: 'Refresh',
-            onPressed: () => ref.invalidate(_reportsProvider),
+            onPressed: () => ref.invalidate(reportsQueueProvider),
             icon: const Icon(Icons.refresh),
           ),
           const SizedBox(width: 8),
@@ -51,7 +51,8 @@ class AdminReportsQueueScreen extends ConsumerWidget {
       ),
       body: reports.when(
         loading: () => const Center(child: CircularProgressIndicator()),
-        error: (e, _) => _ErrorPanel(error: e, onRetry: () => ref.invalidate(_reportsProvider)),
+        error: (e, _) => _ErrorPanel(
+            error: e, onRetry: () => ref.invalidate(reportsQueueProvider)),
         data: (rows) {
           if (rows.isEmpty) {
             return const Center(
@@ -76,6 +77,10 @@ class AdminReportsQueueScreen extends ConsumerWidget {
   }
 }
 
+/// One row in the reports queue. The tappable body is in its own
+/// InkWell column, separate from the quick-actions PopupMenu column,
+/// so the two gestures never fight: tapping the three-dot menu
+/// never accidentally opens the target.
 class _ReportTile extends ConsumerWidget {
   const _ReportTile({required this.report});
 
@@ -92,86 +97,109 @@ class _ReportTile extends ConsumerWidget {
     final note = report['note'] as String?;
     final status = report['status'] as String;
     final preview = report['target_preview'] as String?;
+    final postId = report['post_id'] as int?;
+    final chatId = report['chat_id'] as int?;
     final createdAt = DateTime.parse(report['created_at'] as String);
 
     final age = DateTime.now().difference(createdAt);
     final ageStr = _humanAge(age);
 
-    return InkWell(
-      onTap: () => _openTarget(context, targetType, targetId, targetNumeric),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            _SeverityDot(age: age),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      _Chip(label: targetType, color: _typeColor(targetType, context)),
-                      const SizedBox(width: 6),
-                      _Chip(label: reason, color: Colors.orange.shade100),
-                      const SizedBox(width: 6),
-                      _Chip(
-                        label: status,
-                        color: status == 'open'
-                            ? Colors.red.shade100
-                            : Colors.grey.shade200,
-                      ),
-                      const Spacer(),
-                      Text('#$id', style: Theme.of(context).textTheme.labelSmall),
-                    ],
-                  ),
-                  const SizedBox(height: 6),
-                  if (preview != null && preview.isNotEmpty)
-                    Text(
-                      preview,
-                      maxLines: 3,
-                      overflow: TextOverflow.ellipsis,
-                      style: Theme.of(context).textTheme.bodyMedium,
+    final destination =
+        _routeFor(targetType, targetId, targetNumeric, postId, chatId);
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _SeverityDot(age: age),
+          const SizedBox(width: 12),
+          Expanded(
+            child: InkWell(
+              onTap: destination == null
+                  ? null
+                  : () => context.push(destination),
+              borderRadius: BorderRadius.circular(8),
+              child: Padding(
+                padding: const EdgeInsets.all(4),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        _Chip(
+                          label: targetType,
+                          color: _typeColor(targetType),
+                        ),
+                        const SizedBox(width: 6),
+                        _Chip(label: reason, color: Colors.orange.shade100),
+                        const SizedBox(width: 6),
+                        _Chip(
+                          label: status,
+                          color: status == 'open'
+                              ? Colors.red.shade100
+                              : Colors.grey.shade200,
+                        ),
+                        const Spacer(),
+                        Text('#$id',
+                            style: Theme.of(context).textTheme.labelSmall),
+                      ],
                     ),
-                  if (note != null && note.isNotEmpty) ...[
-                    const SizedBox(height: 4),
+                    const SizedBox(height: 6),
+                    if (preview != null && preview.isNotEmpty)
+                      Text(
+                        preview,
+                        maxLines: 3,
+                        overflow: TextOverflow.ellipsis,
+                        style: Theme.of(context).textTheme.bodyMedium,
+                      ),
+                    if (note != null && note.isNotEmpty) ...[
+                      const SizedBox(height: 4),
+                      Text(
+                        'Reporter note: $note',
+                        style: Theme.of(context).textTheme.bodySmall,
+                      ),
+                    ],
+                    const SizedBox(height: 6),
                     Text(
-                      'Reporter note: $note',
-                      style: Theme.of(context).textTheme.bodySmall,
+                      'By #${reporterNumeric ?? "?"} → #${targetNumeric ?? "?"} · $ageStr · ${DateFormat('MMM d, HH:mm').format(createdAt.toLocal())}',
+                      style: Theme.of(context).textTheme.labelSmall,
                     ),
                   ],
-                  const SizedBox(height: 6),
-                  Text(
-                    'By #${reporterNumeric ?? "?"} → #${targetNumeric ?? "?"} · $ageStr · ${DateFormat('MMM d, HH:mm').format(createdAt.toLocal())}',
-                    style: Theme.of(context).textTheme.labelSmall,
-                  ),
-                ],
+                ),
               ),
             ),
-            const SizedBox(width: 12),
-            if (status == 'open')
-              _QuickActionsMenu(reportId: id),
-          ],
-        ),
+          ),
+          const SizedBox(width: 4),
+          if (status == 'open') _QuickActionsMenu(reportId: id),
+        ],
       ),
     );
   }
 
-  void _openTarget(BuildContext context, String type, int? id, int? numericId) {
+  String? _routeFor(
+    String type,
+    int? targetId,
+    int? numericId,
+    int? postId,
+    int? chatId,
+  ) {
     switch (type) {
       case 'post':
-        if (id != null) context.push('/post/$id');
+        return targetId != null ? '/post/$targetId' : null;
       case 'comment':
-        // Comments link to their parent post via context; we'll fetch the
-        // post id lazily on the user-summary side. For now, route to user.
-        if (numericId != null) context.push('/user/$numericId');
+        // Land on the post containing the comment so the admin sees
+        // the full thread and can act on the comment from there.
+        return postId != null ? '/post/$postId' : null;
       case 'user':
-        if (numericId != null) context.push('/user/$numericId');
+        return numericId != null ? '/user/$numericId' : null;
       case 'message':
-        // Need to find chat_id — the queue doesn't have it. Use Chats tab.
-        if (numericId != null) context.push('/user/$numericId');
+        // Land on the chat containing the reported message. The
+        // /chat screen prompts for a reason, then renders the
+        // messages with the reported ones flagged.
+        return chatId != null ? '/chat/$chatId' : null;
     }
+    return null;
   }
 
   String _humanAge(Duration d) {
@@ -181,7 +209,7 @@ class _ReportTile extends ConsumerWidget {
     return '${d.inDays}d old';
   }
 
-  Color _typeColor(String type, BuildContext ctx) {
+  Color _typeColor(String type) {
     switch (type) {
       case 'post':
         return Colors.blue.shade100;
@@ -211,7 +239,7 @@ class _SeverityDot extends StatelessWidget {
     return Container(
       width: 10,
       height: 10,
-      margin: const EdgeInsets.only(top: 6),
+      margin: const EdgeInsets.only(top: 10),
       decoration: BoxDecoration(color: color, shape: BoxShape.circle),
     );
   }
@@ -250,7 +278,7 @@ class _QuickActionsMenu extends ConsumerWidget {
                 reportId: reportId,
                 action: action,
               );
-          ref.invalidate(_reportsProvider);
+          ref.invalidate(reportsQueueProvider);
           if (context.mounted) {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(content: Text('Report #$reportId marked $action')),
